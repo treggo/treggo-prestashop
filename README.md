@@ -7,7 +7,7 @@ Módulo de envío rápido Treggo para Prestashop
 Puedes acceder a nuestro sitio aquí: <http://empresas.treggocity.com/>
 
 
-##Guía de instación del  módulo
+## Guía de instación del módulo
 
 #### 1) Descargar archivo .zip
 + En en panel derecho seleccionar "Releases/v1.0.0"
