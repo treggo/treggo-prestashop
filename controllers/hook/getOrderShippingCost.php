@@ -23,7 +23,8 @@ class TreggoShippingModuleGetOrderShippingCostController
      */
     public function getDeliveryService()
     {
-    
+        $total_price = null;
+        
         $url = 'https://api.treggo.co/1/integrations/prestashop/rates';
 
         if (!ctype_digit($this->postcode)) {
@@ -34,7 +35,7 @@ class TreggoShippingModuleGetOrderShippingCostController
 
         $data = array(
             'email' => Configuration::get('PS_SHOP_EMAIL'),
-            'dominio' => $this->context->shop->domain ,
+            'dominio' => 'https://treggo-presta.rockstarsolutions.tech', // DESHARCODEAR PARA PROD!!!! $this->context->shop->domain ,
             'cp' => $postcode,
             'locality' => $this->city
         );
@@ -56,7 +57,7 @@ class TreggoShippingModuleGetOrderShippingCostController
             // Executing CURL request and parsing it from JSON to a PHP array
             $result = curl_exec($curl);
             $result = json_decode($result);
-
+            
             // Closing CURL connection
             curl_close($curl);
 
@@ -84,9 +85,12 @@ class TreggoShippingModuleGetOrderShippingCostController
     {
         $this->loadLocation($cart);
         $shipping_cost = $this->getDeliveryService();
-        if ($shipping_cost === false) {
+        $price_multiplier = Configuration::get('treggo_multiplicador');
+        $shipping_price = $shipping_cost * $price_multiplier;
+
+        if ($shipping_price === false) {
             return false;
         }
-        return $shipping_cost + $shipping_fees;
+        return $shipping_price + $shipping_fees;
     }
 }

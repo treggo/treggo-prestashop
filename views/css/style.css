@@ -1,0 +1,51 @@
+/** SETTINGS */
+h3.treggo-warning {
+	color: #D73B1E;
+	font-size: 1.5em !important;
+	font-weight: 400;
+}
+
+h3.treggo-info {
+	color: #00BAFF;
+	font-size: 1.5em !important;
+	font-weight: 400;
+}
+
+h3.treggo-warning:before, h3.treggo-info:before {
+    margin-right: 10px;
+}
+
+h3.multiplier-help,
+h3.multiplier-help ~ p,
+h3.multiplier-help-item,
+h3.multiplier-help-item ~ p {
+	margin: 0;
+}
+
+
+h3.multiplier-help ~ p, h3.multiplier-help-item ~ p {
+	font-size: 15px !important;
+}
+
+/** WELCOME PAGE */
+div.treggo-container {
+	width: 100%;
+	padding-top: 20px;
+	max-width: 600px;
+	margin: 0 auto;
+}
+div.treggo-container a.banner {
+	display: block;
+    box-shadow: none;
+}
+div.treggo-container a.banner img {
+	max-width: 600px;
+}
+div.treggo-container p {
+	font-size: 16px;
+	margin: 10px 0;
+}
+div.treggo-container img.footer {
+	width: 100px;
+	margin-bottom: 20px;
+}
