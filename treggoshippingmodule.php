@@ -21,12 +21,16 @@ class TreggoShippingModule extends CarrierModule
         'actionCarrierUpdate',
         'actionOrderStatusUpdate'
     );
+
+    protected $carriers = array(    
+        'Treggo Shipping' => 'treggoshipping',  
+    );
     
     public function __construct()
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.0';
+        $this->version = '2.0.3';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
