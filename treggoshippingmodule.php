@@ -21,11 +21,6 @@ class TreggoShippingModule extends CarrierModule
         'actionCarrierUpdate',
         'actionOrderStatusUpdate'
     );
-     
-    protected $carriers = array(
-    //"Public carrier name" => "technical name",
-        'Treggo Shipping' => 'treggoshipping',
-    );
     
     public function __construct()
     {
@@ -56,7 +51,7 @@ class TreggoShippingModule extends CarrierModule
                 'nombre' => $this->context->shop->name,
                 'store' => array(
                     'nombre' => $this->context->shop->name,
-                    'dominio' => 'https://treggo-presta.rockstarsolutions.tech', // DESHARCODEAR PARA PROD!!!! $this->context->shop->domain,
+                    'dominio' => $this->context->shop->domain,
                     'id' => $this->context->shop->id_shop_group
                 )
             );
@@ -247,10 +242,17 @@ class TreggoShippingModule extends CarrierModule
 
     public function hookActionOrderStatusUpdate($params)
     {
-        $new_order_status = $params['newOrderStatus']; // OrderState Object
+        $new_order_status = $params['newOrderStatus'];
         $state_name = $new_order_status->name;
         $id_order= $params['id_order'];
         $order = new Order((int) $id_order);
+
+        $carrier = strtolower($order->getShipping()[0]['carrier_name']);
+
+        if (strpos($carrier, 'treggo') === false) {
+            return;
+        }
+
         $address = new Address((int)($order->id_address_delivery));
 
         $url = 'https://api.treggo.co/1/integrations/prestashop/notifications';
@@ -268,7 +270,7 @@ class TreggoShippingModule extends CarrierModule
 
         $shippment_data = array(
             'email' => Configuration::get('PS_SHOP_EMAIL'),
-            'dominio' => 'https://treggo-presta.rockstarsolutions.tech', // DESHARCODEAR PARA PROD!!!! $this->context->shop->domain,
+            'dominio' => $this->context->shop->domain,
             'order' => array(
                 'id_shop_group' => $id_shop_group,
                 'id_shop' => $id_shop,
@@ -285,7 +287,7 @@ class TreggoShippingModule extends CarrierModule
                 'firstname' =>  $address->firstname,
                 'address1' =>  $address->address1,
                 'address2' =>  $address->address2,
-                'postcode' =>  $postcode, //$address->postcode,
+                'postcode' =>  $postcode,
                 'city' =>  $address->city,
                 'phone' =>  $address->phone,
                 'phone_mobile' =>  $address->phone_mobile,
@@ -326,12 +328,6 @@ class TreggoShippingModule extends CarrierModule
             $multiplicador = strval(Tools::getValue('treggo_multiplicador'));
             $a4 = strval(Tools::getValue('treggo_etiquetas_a4_pdf'));
             $zebra = strval(Tools::getValue('treggo_etiquetas_zebra_pdf'));
-
-            error_log(print_r([
-                'multiplicador' => $multiplicador,
-                'a4' => $a4,
-                'zebra' => $zebra
-            ], true));
 
             $checkboxValues = ['on', 'off'];
 

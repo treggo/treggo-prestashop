@@ -20,23 +20,23 @@ class AdminOrdersController extends AdminOrdersControllerCore
         parent::__construct();
                  
         $this->_select = '
-		a.id_currency,
+        a.id_currency,
         a.id_order AS id_pdf,
         a.id_order as id_temp,
-		CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
-		osl.`name` AS `osname`,
-		os.`color`,
-		IF((SELECT so.id_order FROM `' . _DB_PREFIX_ . 'orders` so WHERE so.id_customer = a.id_customer AND so.id_order < a.id_order LIMIT 1) > 0, 0, 1) as new,
-		country_lang.name as cname,
-		IF(a.valid, 1, 0) badge_success';
+        CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
+        osl.`name` AS `osname`,
+        os.`color`,
+        IF((SELECT so.id_order FROM `' . _DB_PREFIX_ . 'orders` so WHERE so.id_customer = a.id_customer AND so.id_order < a.id_order LIMIT 1) > 0, 0, 1) as new,
+        country_lang.name as cname,
+        IF(a.valid, 1, 0) badge_success';
 
         $this->_join = '
-		LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
-		INNER JOIN `' . _DB_PREFIX_ . 'address` address ON address.id_address = a.id_address_delivery
-		INNER JOIN `' . _DB_PREFIX_ . 'country` country ON address.id_country = country.id_country
-		INNER JOIN `' . _DB_PREFIX_ . 'country_lang` country_lang ON (country.`id_country` = country_lang.`id_country` AND country_lang.`id_lang` = ' . (int) $this->context->language->id . ')
-		LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
-		LEFT JOIN `' . _DB_PREFIX_ . 'order_state_lang` osl ON (os.`id_order_state` = osl.`id_order_state` AND osl.`id_lang` = ' . (int) $this->context->language->id . ')';
+        LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
+        INNER JOIN `' . _DB_PREFIX_ . 'address` address ON address.id_address = a.id_address_delivery
+        INNER JOIN `' . _DB_PREFIX_ . 'country` country ON address.id_country = country.id_country
+        INNER JOIN `' . _DB_PREFIX_ . 'country_lang` country_lang ON (country.`id_country` = country_lang.`id_country` AND country_lang.`id_lang` = ' . (int) $this->context->language->id . ')
+        LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
+        LEFT JOIN `' . _DB_PREFIX_ . 'order_state_lang` osl ON (os.`id_order_state` = osl.`id_order_state` AND osl.`id_lang` = ' . (int) $this->context->language->id . ')';
         $this->_orderBy = 'id_order';
         $this->_orderWay = 'DESC';
         $this->_use_found_rows = true;
@@ -116,13 +116,13 @@ class AdminOrdersController extends AdminOrdersControllerCore
 
         if (Country::isCurrentlyUsed('country', true)) {
             $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
-			SELECT DISTINCT c.id_country, cl.`name`
-			FROM `' . _DB_PREFIX_ . 'orders` o
-			' . Shop::addSqlAssociation('orders', 'o') . '
-			INNER JOIN `' . _DB_PREFIX_ . 'address` a ON a.id_address = o.id_address_delivery
-			INNER JOIN `' . _DB_PREFIX_ . 'country` c ON a.id_country = c.id_country
-			INNER JOIN `' . _DB_PREFIX_ . 'country_lang` cl ON (c.`id_country` = cl.`id_country` AND cl.`id_lang` = ' . (int) $this->context->language->id . ')
-			ORDER BY cl.name ASC');
+            SELECT DISTINCT c.id_country, cl.`name`
+            FROM `' . _DB_PREFIX_ . 'orders` o
+            ' . Shop::addSqlAssociation('orders', 'o') . '
+            INNER JOIN `' . _DB_PREFIX_ . 'address` a ON a.id_address = o.id_address_delivery
+            INNER JOIN `' . _DB_PREFIX_ . 'country` c ON a.id_country = c.id_country
+            INNER JOIN `' . _DB_PREFIX_ . 'country_lang` cl ON (c.`id_country` = cl.`id_country` AND cl.`id_lang` = ' . (int) $this->context->language->id . ')
+            ORDER BY cl.name ASC');
 
             $country_array = array();
             foreach ($result as $row) {
@@ -189,50 +189,46 @@ class AdminOrdersController extends AdminOrdersControllerCore
                 $id_carrier = $order->id_carrier;
                 $id_lang = $order->id_lang;
                 $carrier = new Carrier($id_carrier, $id_lang); // Carrier Object
-
-                // Select only orders with Treggo Shipping Method
-                // if ($carrier->name === 'Treggo Shipping') {
-                    $id_order_state = (int)$order->getCurrentState(); // Order tatus id
-                    $order_status = new OrderState((int)$id_order_state, (int)$order->id_lang); // Order status Object by id_order_state
-                    $address = new Address((int)($order->id_address_delivery)); // Address Object  
-                    $state = State::getNameById($address->id_state); // State Name
-                    $id_shop_group = $order->id_shop_group;
-                    $id_shop = $order->id_shop;
-            
-                    if (!ctype_digit($address->postcode)) {
-                        $postcode = Tools::substr($address->postcode, 1, -3);
-                    } else {
-                        $postcode = $address->postcode;
-                    }
-            
-                    $orders[] = array(
-                        'id_shop_group' => $id_shop_group,
-                        'id_shop' => $id_shop,
-                        'id_order'=> $id_order,
-                        'order_status' => $order_status->name,
-                        'id_customer' => $address->id_customer,
-                        'id_country' =>  $address->id_country,
-                        'id_state' =>  $address->id_state,
-                        'state' => $state,
-                        'country' =>  $address->country,
-                        'alias' =>  $address->alias,
-                        'company' =>  $address->company,
-                        'lastname' =>  $address->lastname,
-                        'firstname' =>  $address->firstname,
-                        'address1' =>  $address->address1,
-                        'address2' =>  $address->address2,
-                        'postcode' =>  $postcode,
-                        'city' =>  $address->city,
-                        'phone' =>  $address->phone,
-                        'phone_mobile' =>  $address->phone_mobile,
-                        'dni' =>  $address->dni
-                    );
-                // }
+                $id_order_state = (int)$order->getCurrentState(); // Order tatus id
+                $order_status = new OrderState((int)$id_order_state, (int)$order->id_lang); // Order status Object by id_order_state
+                $address = new Address((int)($order->id_address_delivery)); // Address Object  
+                $state = State::getNameById($address->id_state); // State Name
+                $id_shop_group = $order->id_shop_group;
+                $id_shop = $order->id_shop;
+        
+                if (!ctype_digit($address->postcode)) {
+                    $postcode = Tools::substr($address->postcode, 1, -3);
+                } else {
+                    $postcode = $address->postcode;
+                }
+        
+                $orders[] = array(
+                    'id_shop_group' => $id_shop_group,
+                    'id_shop' => $id_shop,
+                    'id_order'=> $id_order,
+                    'order_status' => $order_status->name,
+                    'id_customer' => $address->id_customer,
+                    'id_country' =>  $address->id_country,
+                    'id_state' =>  $address->id_state,
+                    'state' => $state,
+                    'country' =>  $address->country,
+                    'alias' =>  $address->alias,
+                    'company' =>  $address->company,
+                    'lastname' =>  $address->lastname,
+                    'firstname' =>  $address->firstname,
+                    'address1' =>  $address->address1,
+                    'address2' =>  $address->address2,
+                    'postcode' =>  $postcode,
+                    'city' =>  $address->city,
+                    'phone' =>  $address->phone,
+                    'phone_mobile' =>  $address->phone_mobile,
+                    'dni' =>  $address->dni
+                );
             }
 
             $shippment_data = array(
                 'email' => Configuration::get('PS_SHOP_EMAIL'),
-                'dominio' => 'https://treggo-presta.rockstarsolutions.tech', // DESHARCODEAR PARA PROD!!!! $this->context->shop->domain,
+                'dominio' => $this->context->shop->domain,
                 'type' => $type,
                 'orders' => $orders
             );
