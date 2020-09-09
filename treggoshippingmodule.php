@@ -30,7 +30,7 @@ class TreggoShippingModule extends CarrierModule
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.3';
+        $this->version = '2.0.4';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
@@ -166,7 +166,6 @@ class TreggoShippingModule extends CarrierModule
                 copy(dirname(__FILE__) . '/views/img/logo.jpg', _PS_SHIP_IMG_DIR_ . '/' . (int) $carrier->id . '.jpg');
 
                 Configuration::updateValue(self::PREFIX . $value, $carrier->id);
-                Configuration::updateValue(self::PREFIX . $value . '_reference', $carrier->id);
                 Configuration::updateValue('treggo_multiplicador', 1);
                 Configuration::updateValue('treggo_etiquetas_a4_pdf', 'on');
                 Configuration::updateValue('treggo_etiquetas_zebra_pdf', 'on');
@@ -183,12 +182,8 @@ class TreggoShippingModule extends CarrierModule
             $carrier = new Carrier($tmp_carrier_id);
             $carrier->delete();
             Configuration::deleteByName(self::PREFIX . $value);
-            Configuration::deleteByName(self::PREFIX . $value . '_reference');
-            Configuration::deleteByName('treggo_multiplicador');
-            Configuration::deleteByName('treggo_etiquetas_a4_pdf');
-            Configuration::deleteByName('treggo_etiquetas_zebra_pdf');
         }
-    
+
         return true;
     }
   
@@ -204,6 +199,11 @@ class TreggoShippingModule extends CarrierModule
             if (!$this->deleteCarriers()) {
                 return  false;
             }
+
+            Configuration::deleteByName('treggo_multiplicador');
+            Configuration::deleteByName('treggo_etiquetas_a4_pdf');
+            Configuration::deleteByName('treggo_etiquetas_zebra_pdf');
+            Configuration::deleteByName('treggo_first_configuration');
     
             return true;
         }
@@ -237,25 +237,25 @@ class TreggoShippingModule extends CarrierModule
     {
         $old_id_carrier = (int)$params['id_carrier'];
         $new_id_carrier = (int)$params['carrier']->id;
-        
-        if (Configuration::get(self::PREFIX . $value) == $old_id_carrier) {
-            Configuration::updateValue(self::PREFIX . $value, $new_id_carrier);
-            Configuration::updateValue(self::PREFIX . $value . '_reference', $id_carrier_new);
+
+        if (Configuration::get(self::PREFIX . 'treggoshipping') == $old_id_carrier) {
+            Configuration::updateValue(self::PREFIX . 'treggoshipping', $new_id_carrier);
         }
     }
 
     public function hookActionOrderStatusUpdate($params)
     {
-        $new_order_status = $params['newOrderStatus'];
-        $state_name = $new_order_status->name;
         $id_order= $params['id_order'];
         $order = new Order((int) $id_order);
 
-        $carrier = strtolower($order->getShipping()[0]['carrier_name']);
+        $id_carrier = $order->getShipping()[0]['id_carrier'];
 
-        if (strpos($carrier, 'treggo') === false) {
+        if ($id_carrier !== Configuration::get(self::PREFIX . 'treggoshipping')) {
             return;
         }
+
+        $new_order_status = $params['newOrderStatus'];
+        $state_name = $new_order_status->name;
 
         $address = new Address((int)($order->id_address_delivery));
 
