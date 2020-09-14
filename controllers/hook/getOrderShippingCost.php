@@ -23,7 +23,7 @@ class TreggoShippingModuleGetOrderShippingCostController
      */
     public function getDeliveryService()
     {
-        $total_price = null;
+        $total_price = false;
         
         $url = 'https://api.treggo.co/1/integrations/prestashop/rates';
 
@@ -35,7 +35,7 @@ class TreggoShippingModuleGetOrderShippingCostController
 
         $data = array(
             'email' => Configuration::get('PS_SHOP_EMAIL'),
-            'dominio' => 'https://treggo-presta.rockstarsolutions.tech', // DESHARCODEAR PARA PROD!!!! $this->context->shop->domain ,
+            'dominio' => $this->context->shop->domain ,
             'cp' => $postcode,
             'locality' => $this->city
         );
@@ -63,9 +63,7 @@ class TreggoShippingModuleGetOrderShippingCostController
 
             // If we got a price then we have shipping availability, if not, then we should hide the shipping method
             if (isset($result->total_price) && $result->total_price !== null) {
-                $total_price = (int)$result->total_price;
-            } elseif (isset($result->message) && $result->message === 'El usuario no tiene coberturas seteadas') {
-                $total_price = false;
+                $total_price = (int) $result->total_price;
             }
         } catch (\Exception $e) {
             throw new \Exception('Error de comunicación con el servidor: ' . $e->getMessage());
@@ -85,12 +83,14 @@ class TreggoShippingModuleGetOrderShippingCostController
     {
         $this->loadLocation($cart);
         $shipping_cost = $this->getDeliveryService();
+
+        if ($shipping_cost === false) {
+            return false;
+        }
+
         $price_multiplier = Configuration::get('treggo_multiplicador');
         $shipping_price = $shipping_cost * $price_multiplier;
 
-        if ($shipping_price === false) {
-            return false;
-        }
         return $shipping_price + $shipping_fees;
     }
 }
