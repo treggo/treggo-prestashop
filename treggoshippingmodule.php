@@ -30,7 +30,7 @@ class TreggoShippingModule extends CarrierModule
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.4';
+        $this->version = '2.0.6';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
