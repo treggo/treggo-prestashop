@@ -206,6 +206,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
                     'id_shop_group' => $id_shop_group,
                     'id_shop' => $id_shop,
                     'id_order'=> $id_order,
+                    'reference' => $order->reference,
                     'order_status' => $order_status->name,
                     'id_customer' => $address->id_customer,
                     'id_country' =>  $address->id_country,

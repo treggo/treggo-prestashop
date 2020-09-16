@@ -279,6 +279,7 @@ class TreggoShippingModule extends CarrierModule
                 'id_shop_group' => $id_shop_group,
                 'id_shop' => $id_shop,
                 'id_order'=> $id_order,
+                'reference' => $order->reference,
                 'order_status' => $state_name,
                 'id_customer' => $address->id_customer,
                 'id_country' =>  $address->id_country,
@@ -302,7 +303,7 @@ class TreggoShippingModule extends CarrierModule
         try {
             // Initiating CURL library instance
             $curl = curl_init();
-    
+
             // Setting CURL options...
             curl_setopt($curl, CURLOPT_POST, 1);
             curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($shippment_data));
