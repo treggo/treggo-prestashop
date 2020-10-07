@@ -30,7 +30,7 @@ class TreggoShippingModule extends CarrierModule
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.6';
+        $this->version = '2.0.7';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
@@ -248,9 +248,9 @@ class TreggoShippingModule extends CarrierModule
         $id_order= $params['id_order'];
         $order = new Order((int) $id_order);
 
-        $id_carrier = $order->getShipping()[0]['id_carrier'];
+        $carrier = $order->getShipping()[0];
 
-        if ($id_carrier !== Configuration::get(self::PREFIX . 'treggoshipping')) {
+        if ($carrier['id_carrier'] !== Configuration::get(self::PREFIX . 'treggoshipping')) {
             return;
         }
 
@@ -296,7 +296,9 @@ class TreggoShippingModule extends CarrierModule
                 'city' =>  $address->city,
                 'phone' =>  $address->phone,
                 'phone_mobile' =>  $address->phone_mobile,
-                'dni' =>  $address->dni
+                'dni' =>  $address->dni,
+                'carrier_name' => $carrier['carrier_name'],
+                'state_name' => $carrier['state_name'],
             )
         );
 

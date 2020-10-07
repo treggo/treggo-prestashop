@@ -188,7 +188,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
                 $order = new Order((int) $id_order); // Order Object
                 $id_carrier = $order->id_carrier;
                 $id_lang = $order->id_lang;
-                $carrier = new Carrier($id_carrier, $id_lang); // Carrier Object
+                $carrier = $order->getShipping()[0];
                 $id_order_state = (int)$order->getCurrentState(); // Order tatus id
                 $order_status = new OrderState((int)$id_order_state, (int)$order->id_lang); // Order status Object by id_order_state
                 $address = new Address((int)($order->id_address_delivery)); // Address Object  
@@ -223,7 +223,9 @@ class AdminOrdersController extends AdminOrdersControllerCore
                     'city' =>  $address->city,
                     'phone' =>  $address->phone,
                     'phone_mobile' =>  $address->phone_mobile,
-                    'dni' =>  $address->dni
+                    'dni' =>  $address->dni,
+                    'carrier_name' => $carrier['carrier_name'],
+                    'state_name' => $carrier['state_name']
                 );
             }
 
