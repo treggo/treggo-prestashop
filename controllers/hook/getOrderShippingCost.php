@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Rockstar e-Commerce Solutions
  * @copyright  2020 Rockstar e-Commerce Solutions
@@ -10,6 +11,8 @@
  */
 class TreggoShippingModuleGetOrderShippingCostController
 {
+    private $cache = [];
+
     public function __construct($module, $file, $path)
     {
         $this->file = $file;
@@ -23,9 +26,9 @@ class TreggoShippingModuleGetOrderShippingCostController
      */
     public function getDeliveryService()
     {
-        $total_price = false;
-        
-        $url = 'https://api.treggo.co/1/integrations/prestashop/rates';
+        $price = false;
+
+        $url = 'https://api.treggo.co/1/integrations/prestashop/rate';
 
         if (!ctype_digit($this->postcode)) {
             $postcode = Tools::substr($this->postcode, 1, -3);
@@ -33,45 +36,71 @@ class TreggoShippingModuleGetOrderShippingCostController
             $postcode = $this->postcode;
         }
 
+        $result = null;
+
         $data = array(
             'email' => Configuration::get('PS_SHOP_EMAIL'),
-            'dominio' => $this->context->shop->domain ,
+            'dominio' => $this->context->shop->domain,
             'cp' => $postcode,
             'locality' => $this->city
         );
+
+        $md5 = md5(json_encode($data, true));
+
+        if (!isset($this->cache[$md5])) {
         
-        try {
-            // Initiating CURL library instance
-            $curl = curl_init();
+            try {
+                $curl = curl_init();
 
-            // Setting CURL options...
-            curl_setopt($curl, CURLOPT_POST, 1);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-            curl_setopt($curl, CURLOPT_URL, $url);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-                'Content-Type: application/x-www-form-urlencoded',
-                'cache-control: no-cache'
-            ));
+                curl_setopt($curl, CURLOPT_POST, 1);
+                curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+                curl_setopt($curl, CURLOPT_URL, $url);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+                    'Content-Type: application/x-www-form-urlencoded',
+                    'cache-control: no-cache'
+                ));
 
-            // Executing CURL request and parsing it from JSON to a PHP array
-            $result = curl_exec($curl);
-            $result = json_decode($result);
-            
-            // Closing CURL connection
-            curl_close($curl);
-
-            // If we got a price then we have shipping availability, if not, then we should hide the shipping method
-            if (isset($result->total_price) && $result->total_price !== null) {
-                $total_price = (int) $result->total_price;
+                $result = curl_exec($curl);
+                $this->cache[$md5] = $result;
+                $result = json_decode($result, true);
+                curl_close($curl);
+            } catch (\Exception $e) {
+                throw new \Exception('Error de comunicación con el servidor: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            throw new \Exception('Error de comunicación con el servidor: ' . $e->getMessage());
+        } else {
+            try {
+                $result = json_decode($this->cache[$md5], true);
+            } catch (\Exception $e) {
+                unset($this->cache[$md5]);
+                return $this->getDeliveryService();
+            }
         }
-        return $total_price;
+
+        if ($result !== null && is_array($result)) {
+            $carrier_code = null;
+
+            $carriers = array_values($this->module->carriers);
+
+            for ($i = 0; $i < count($carriers); $i++) { 
+                if (Configuration::get(get_class($this->module)::PREFIX . $carriers[$i]) == $this->module->id_carrier) {
+                    $carrier_code = $carriers[$i];
+                    break;
+                }
+            }
+
+            if ($carrier_code !== null) {
+                foreach ($result as $shipping_method) {
+                    if ($shipping_method['code'] === $carrier_code && isset($shipping_method['total_price']) && $shipping_method['total_price'] !== null) {
+                        $price = (int) $shipping_method['total_price'];
+                    }
+                }
+            }
+        }
+
+        return $price;
     }
 
-    // Get location data necesary to execute Treggo rates request
     public function loadLocation($cart)
     {
         $address = new Address($cart->id_address_delivery);

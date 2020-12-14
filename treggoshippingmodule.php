@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Rockstar e-Commerce Solutions
  * @copyright  2020 Rockstar e-Commerce Solutions
@@ -16,28 +17,34 @@ if (!defined('_PS_VERSION_')) {
 class TreggoShippingModule extends CarrierModule
 {
     const PREFIX = 'treggoshippingmodule_';
+
+    public $id_carrier;
  
     protected $hooks = array(
         'actionCarrierUpdate',
         'actionOrderStatusUpdate'
     );
 
-    protected $carriers = array(    
-        'Treggo Shipping' => 'treggoshipping',  
+    public $carriers = array(
+        'Envío On Demand' => 'ondemand',
+        'Envío Same Day' => 'sameday',
+        'Envío Next Day' => 'nextday',
+        'Envío con Redespacho' => 'redespacho'
     );
     
     public function __construct()
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.7';
+        $this->version = '2.0.8';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
         parent::__construct();
      
         $this->displayName = $this->l('Treggo');
-        $this->description = $this->l('Envío rápido con Treggo.');
+        $this->description = $this->l('Envío rápido con Treggo');
+        $this->shippingCostController = $this->getHookController('getOrderShippingCost');
     }
 
     /**
@@ -51,20 +58,20 @@ class TreggoShippingModule extends CarrierModule
 
             $data = array(
                 'email' => Configuration::get('PS_SHOP_EMAIL'),
-                'telefono' => Configuration::get('PS_SHOP_PHONE') ,
+                'telefono' => Configuration::get('PS_SHOP_PHONE'),
                 'nombre' => $this->context->shop->name,
                 'store' => array(
                     'nombre' => $this->context->shop->name,
                     'dominio' => $this->context->shop->domain,
-                    'id' => $this->context->shop->id_shop_group
+                    'id' => $this->context->shop->id_shop_group,
+                    'version_plugin' => $this->version,
+                    'version_presta' => _PS_VERSION_,
+                    'devmode' => _PS_MODE_DEV_
                 )
             );
 
             try {
-                // Initiating CURL library instance
                 $curl = curl_init();
-        
-                // Setting CURL options...
                 curl_setopt($curl, CURLOPT_POST, 1);
                 curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
                 curl_setopt($curl, CURLOPT_URL, $url);
@@ -92,10 +99,22 @@ class TreggoShippingModule extends CarrierModule
                 }
             }
 
-            if (!$this->createCarriers()) { //function for creating new carrier
+            if (!$this->createCarriers()) {
                 return  false;
             }
-    
+
+            $prev_multiplicador = Configuration::get('treggo_multiplicador');
+            $prev_etiquetas_a4_pdf = Configuration::get('treggo_etiquetas_a4_pdf');
+            $prev_etiquetas_zebra_pdf = Configuration::get('treggo_etiquetas_zebra_pdf');
+
+            $multiplicador = Tools::getValue('treggo_multiplicador', empty($prev_multiplicador) ? 1 : $prev_multiplicador);
+            $etiquetas_a4_pdf = Tools::getValue('treggo_etiquetas_a4_pdf', empty($prev_etiquetas_a4_pdf) ? 'on' : $prev_etiquetas_a4_pdf);
+            $etiquetas_zebra_pdf = Tools::getValue('treggo_etiquetas_zebra_pdf', empty($prev_etiquetas_zebra_pdf) ? 'on' : $prev_etiquetas_zebra_pdf);
+
+            Configuration::updateValue('treggo_multiplicador', $multiplicador);
+            Configuration::updateValue('treggo_etiquetas_a4_pdf', $etiquetas_a4_pdf);
+            Configuration::updateValue('treggo_etiquetas_zebra_pdf', $etiquetas_zebra_pdf);
+
             return true;
         }
 
@@ -104,21 +123,20 @@ class TreggoShippingModule extends CarrierModule
 
     protected function createCarriers()
     {
-        foreach ($this->carriers as $key => $value) {
-            //Create new carrier
+        foreach ($this->carriers as $name => $code) {
             $carrier = new Carrier();
-            $carrier->name = $key;
+            $carrier->name = $this->description;
             $carrier->active = true;
             $carrier->deleted = 0;
             $carrier->shipping_handling =  false;
             $carrier->range_behavior = 0;
-            $carrier->delay[Configuration::get('PS_LANG_DEFAULT')] = $key;
+            $carrier->delay[Configuration::get('PS_LANG_DEFAULT')] = $name;
             $carrier->shipping_external = true;
             $carrier->id_zone = 6;
             $carrier->is_module = true;
             $carrier->external_module_name = $this->name;
             $carrier->need_range = true;
-    
+
             if ($carrier->add()) {
                 $groups = Group::getGroups(true);
                 foreach ($groups as $group) {
@@ -127,20 +145,20 @@ class TreggoShippingModule extends CarrierModule
                         'id_group' => (int) $group['id_group']
                     ));
                 }
-    
+
                 $rangePrice = new RangePrice();
                 $rangePrice->id_carrier = $carrier->id;
                 $rangePrice->delimiter1 = '0';
                 $rangePrice->delimiter2 = '1000000';
                 $rangePrice->add();
-                
+
                 $rangeWeight = new RangeWeight();
                 $rangeWeight->id_carrier = $carrier->id;
                 $rangeWeight->delimiter1 = '0';
                 $rangeWeight->delimiter2 = '1000000';
                 $rangeWeight->add();
-    
-                
+
+
                 Db::getInstance()->insert('carrier_zone', array(
                     'id_carrier' => (int) $carrier->id,
                     'id_zone' => $carrier->id_zone
@@ -158,35 +176,40 @@ class TreggoShippingModule extends CarrierModule
                     'id_carrier' => $carrier->id,
                     'id_range_price' => null,
                     'id_range_weight' => (int) $rangeWeight->id,
-                    'id_zone' => $carrier->id_zone, 
+                    'id_zone' => $carrier->id_zone,
                     'price' => '0'
                 ));
-                
-                //assign carrier logo
+
+                // Assign carrier logo
                 copy(dirname(__FILE__) . '/views/img/logo.jpg', _PS_SHIP_IMG_DIR_ . '/' . (int) $carrier->id . '.jpg');
 
-                Configuration::updateValue(self::PREFIX . $value, $carrier->id);
-                Configuration::updateValue('treggo_multiplicador', 1);
-                Configuration::updateValue('treggo_etiquetas_a4_pdf', 'on');
-                Configuration::updateValue('treggo_etiquetas_zebra_pdf', 'on');
+                Configuration::updateValue(self::PREFIX . $code, $carrier->id);
             }
         }
-    
+
         return true;
     }
 
     protected function deleteCarriers()
     {
-        foreach ($this->carriers as $value) {
-            $tmp_carrier_id = Configuration::get(self::PREFIX . $value);
-            $carrier = new Carrier($tmp_carrier_id);
+        foreach ($this->carriers as $name => $code) {
+            $carrier_id = Configuration::get(self::PREFIX . $code);
+            $carrier = new Carrier($carrier_id);
             $carrier->delete();
-            Configuration::deleteByName(self::PREFIX . $value);
+            Configuration::deleteByName(self::PREFIX . $code);
+        }
+
+        // Old version carrier
+        $old_carrier_id = Configuration::get(self::PREFIX . 'treggoshipping');
+        if (!empty($old_carrier_id)) {
+            $carrier = new Carrier($old_carrier_id);
+            $carrier->delete();
+            Configuration::deleteByName(self::PREFIX . 'treggoshipping');
         }
 
         return true;
     }
-  
+
     public function uninstall()
     {
         if (parent::uninstall()) {
@@ -195,39 +218,30 @@ class TreggoShippingModule extends CarrierModule
                     return  false;
                 }
             }
-    
+
             if (!$this->deleteCarriers()) {
                 return  false;
             }
 
-            Configuration::deleteByName('treggo_multiplicador');
-            Configuration::deleteByName('treggo_etiquetas_a4_pdf');
-            Configuration::deleteByName('treggo_etiquetas_zebra_pdf');
-            Configuration::deleteByName('treggo_first_configuration');
-    
             return true;
         }
-    
+
         return  false;
     }
 
-    // Build path to controller
-
     public function getHookController($hook_name)
     {
-        require_once(dirname(__FILE__).'/controllers/hook/'. $hook_name.'.php');
-        $controller_name = $this->name . $hook_name.'Controller';
+        require_once(dirname(__FILE__) . '/controllers/hook/' . $hook_name . '.php');
+        $controller_name = $this->name . $hook_name . 'Controller';
         $controller = new $controller_name($this, __FILE__, $this->_path);
         return $controller;
     }
 
-    // Create a controller for shipping cost calculation
     public function getOrderShippingCost($params, $shipping_cost)
     {
-        $controller = $this->getHookController('getOrderShippingCost');
-        return $controller->run($params, $shipping_cost);
+        return $this->shippingCostController->run($params, $shipping_cost);
     }
-    
+
     public function getOrderShippingCostExternal($params)
     {
         return $this->getOrderShippingCost($params, 0);
@@ -238,19 +252,38 @@ class TreggoShippingModule extends CarrierModule
         $old_id_carrier = (int)$params['id_carrier'];
         $new_id_carrier = (int)$params['carrier']->id;
 
-        if (Configuration::get(self::PREFIX . 'treggoshipping') == $old_id_carrier) {
-            Configuration::updateValue(self::PREFIX . 'treggoshipping', $new_id_carrier);
+        foreach ($this->carriers as $name => $code) {
+            if (Configuration::get(self::PREFIX . $code) == $old_id_carrier) {
+                Configuration::updateValue(self::PREFIX . $code, $new_id_carrier);
+            }
         }
     }
 
     public function hookActionOrderStatusUpdate($params)
     {
-        $id_order= $params['id_order'];
+        $id_order = $params['id_order'];
         $order = new Order((int) $id_order);
 
-        $carrier = $order->getShipping()[0];
+        $shipping_methods = $order->getShipping();
 
-        if ($carrier['id_carrier'] !== Configuration::get(self::PREFIX . 'treggoshipping')) {
+        if (!is_array($shipping_methods) || count($shipping_methods) === 0) {
+            return;
+        }
+
+        $shipping = null;
+        $shipping_code = null;
+        $shipping_service = null;
+        foreach ($shipping_methods as $shipping_method) {
+            foreach ($this->carriers as $name => $code) {
+                if ($shipping_method['id_carrier'] === Configuration::get(self::PREFIX . $code)) {
+                    $shipping = $shipping_method;
+                    $shipping_code = $code;
+                    $shipping_service = $name;
+                }
+            }
+        }
+        
+        if (!$shipping) {
             return;
         }
 
@@ -272,13 +305,13 @@ class TreggoShippingModule extends CarrierModule
             $postcode = $address->postcode;
         }
 
-        $shippment_data = array(
+        $shipment_data = array(
             'email' => Configuration::get('PS_SHOP_EMAIL'),
             'dominio' => $this->context->shop->domain,
             'order' => array(
                 'id_shop_group' => $id_shop_group,
                 'id_shop' => $id_shop,
-                'id_order'=> $id_order,
+                'id_order' => $id_order,
                 'reference' => $order->reference,
                 'order_status' => $state_name,
                 'id_customer' => $address->id_customer,
@@ -297,30 +330,29 @@ class TreggoShippingModule extends CarrierModule
                 'phone' =>  $address->phone,
                 'phone_mobile' =>  $address->phone_mobile,
                 'dni' =>  $address->dni,
-                'carrier_name' => $carrier['carrier_name'],
-                'state_name' => $carrier['state_name'],
+                'date' => $order->date_add,
+                'carrier_name' => $shipping['carrier_name'],
+                'code' => $shipping_code,
+                'service' => $shipping_service,
+                'shipping_price' => (float) $shipping['shipping_cost_tax_excl'],
+                'version_plugin' => $this->version,
+                'version_presta' => _PS_VERSION_,
+                'devmode' => _PS_MODE_DEV_
             )
         );
 
         try {
-            // Initiating CURL library instance
             $curl = curl_init();
 
-            // Setting CURL options...
             curl_setopt($curl, CURLOPT_POST, 1);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($shippment_data));
+            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($shipment_data));
             curl_setopt($curl, CURLOPT_URL, $url);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($curl, CURLOPT_HTTPHEADER, array(
                 'Content-Type: application/x-www-form-urlencoded',
                 'cache-control: no-cache'
             ));
-    
-            // Executing CURL request and parsing it from JSON to a PHP array
-            $result = curl_exec($curl);
-            $result = json_decode($result);
-
-            // Closing CURL connection
+            curl_exec($curl);
             curl_close($curl);
         } catch (\Exception $e) {
             throw new \Exception('Error de comunicación con el servidor: ' . $e->getMessage());
@@ -344,7 +376,7 @@ class TreggoShippingModule extends CarrierModule
             if (
                 empty($multiplicador) ||
                 !Validate::isFloat($multiplicador) ||
-                ( (float) $multiplicador < 0) ||
+                ((float) $multiplicador < 0) ||
                 !in_array($a4, $checkboxValues) ||
                 !in_array($zebra, $checkboxValues)
             ) {
@@ -363,12 +395,10 @@ class TreggoShippingModule extends CarrierModule
 
     public function displayForm()
     {
-        $header = null; 
+        $header = null;
 
-        // Get default language
         $defaultLang = (int) Configuration::get('PS_LANG_DEFAULT');
 
-        // Init Fields form array
         $fieldsForm[0]['form'] = [
             'legend' => [
                 'title' => $this->l('Configuración'),
@@ -378,8 +408,6 @@ class TreggoShippingModule extends CarrierModule
                     'type' => 'text',
                     'label' => $this->l('Multiplicador'),
                     'name' => 'treggo_multiplicador',
-                    /*'min' => 0,
-                    'max' => 10,*/
                     'required' => true
                 ],
                 [
@@ -392,12 +420,12 @@ class TreggoShippingModule extends CarrierModule
                         'name' => 'name',
                         'query' => [
                             [
-                              'id' => 'a4_pdf',
-                              'name' => 'A4 PDF'
+                                'id' => 'a4_pdf',
+                                'name' => 'A4 PDF'
                             ],
                             [
-                              'id' => 'zebra_pdf',
-                              'name' => 'Zebra PDF'
+                                'id' => 'zebra_pdf',
+                                'name' => 'Zebra PDF'
                             ]
                         ]
                     ],
@@ -411,35 +439,27 @@ class TreggoShippingModule extends CarrierModule
         ];
 
         $helper = new HelperForm();
-
-        // Module, token and currentIndex
         $helper->module = $this;
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
-
-        // Language
         $helper->default_form_language = $defaultLang;
         $helper->allow_employee_form_lang = $defaultLang;
-
-        // Title and toolbar
         $helper->title = $this->displayName;
-        $helper->show_toolbar = true;        // false -> remove toolbar
-        $helper->toolbar_scroll = true;      // yes - > Toolbar is always visible on the top of the screen.
+        $helper->show_toolbar = true;
+        $helper->toolbar_scroll = true;
         $helper->submit_action = 'submit' . $this->name;
         $helper->toolbar_btn = [
             'save' => [
                 'desc' => $this->l('Save'),
-                'href' => AdminController::$currentIndex . '&configure=' . $this->name . '&save' . $this->name.
-                '&token=' . Tools::getAdminTokenLite('AdminModules'),
+                'href' => AdminController::$currentIndex . '&configure=' . $this->name . '&save' . $this->name .
+                    '&token=' . Tools::getAdminTokenLite('AdminModules'),
             ],
             'back' => [
                 'href' => AdminController::$currentIndex . '&token=' . Tools::getAdminTokenLite('AdminModules'),
                 'desc' => $this->l('Back to list')
             ]
         ];
-
-        // Load current value
 
         $prev_multiplicador = Configuration::get('treggo_multiplicador');
         $prev_etiquetas_a4_pdf = Configuration::get('treggo_etiquetas_a4_pdf');
@@ -477,7 +497,7 @@ class TreggoShippingModule extends CarrierModule
         $formArray = explode("\n", $form);
 
         // Multiplier example
-        for ($i = 0; $i < count($formArray); $i++) { 
+        for ($i = 0; $i < count($formArray); $i++) {
             if (strpos($formArray[$i], 'id="treggo_multiplicador"') !== false) {
                 $formArray[$i + 7] .= "                
                     <div class=\"col-lg-3\"></div>
