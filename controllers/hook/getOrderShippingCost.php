@@ -21,6 +21,13 @@ class TreggoShippingModuleGetOrderShippingCostController
         $this->_path = $path;
     }
 
+    public function get_endpoint()
+    {
+        $country_id = Configuration::get('PS_COUNTRY_DEFAULT');
+        $country = new Country($country_id);
+        return 'https://api.' . strtolower($country->iso_code) . '.treggo.co/1/integrations/prestashop';
+    }
+
     /**
      * Get rates for shipping.
      */
@@ -28,7 +35,7 @@ class TreggoShippingModuleGetOrderShippingCostController
     {
         $price = false;
 
-        $url = 'https://api.treggo.co/1/integrations/prestashop/rate';
+        $url = $this->get_endpoint() . '/rate';
 
         if (!ctype_digit($this->postcode)) {
             $postcode = Tools::substr($this->postcode, 1, -3);

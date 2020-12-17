@@ -47,6 +47,13 @@ class TreggoShippingModule extends CarrierModule
         $this->shippingCostController = $this->getHookController('getOrderShippingCost');
     }
 
+    public function get_endpoint()
+    {
+        $country_id = Configuration::get('PS_COUNTRY_DEFAULT');
+        $country = new Country($country_id);
+        return 'https://api.' . strtolower($country->iso_code) . '.treggo.co/1/integrations/prestashop';
+    }
+
     /**
      * Module install.
      */
@@ -54,7 +61,7 @@ class TreggoShippingModule extends CarrierModule
     {
         if (parent::install()) {
 
-            $url = 'https://api.treggo.co/1/integrations/prestashop/signup';
+            $url = $this->get_endpoint() . '/signup';
 
             $data = array(
                 'email' => Configuration::get('PS_SHOP_EMAIL'),
@@ -292,7 +299,7 @@ class TreggoShippingModule extends CarrierModule
 
         $address = new Address((int)($order->id_address_delivery));
 
-        $url = 'https://api.treggo.co/1/integrations/prestashop/notifications';
+        $url = $this->get_endpoint() . '/notifications';
 
         $address = new Address($params['cart']->id_address_delivery);
         $state = State::getNameById($address->id_state);

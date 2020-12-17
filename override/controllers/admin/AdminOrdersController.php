@@ -15,6 +15,13 @@ class AdminOrdersController extends AdminOrdersControllerCore
         }
     }
 
+    public function get_endpoint()
+    {
+        $country_id = Configuration::get('PS_COUNTRY_DEFAULT');
+        $country = new Country($country_id);
+        return 'https://api.' . strtolower($country->iso_code) . '.treggo.co/1/integrations/prestashop';
+    }
+
     public function printTags($type) {
         $module = Module::getInstanceByName('treggoshippingmodule');
         $orders = array();
@@ -93,7 +100,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
                 'orders' => $orders
             );
 
-            $url = 'https://api.treggo.co/1/integrations/prestashop/tags';
+            $url = $this->get_endpoint() . '/tags';
 
             try {
                 $curl = curl_init();
