@@ -2,7 +2,7 @@
 <module>
     <name>treggoshippingmodule</name>
     <displayName><![CDATA[Treggo]]></displayName>
-    <version><![CDATA[2.0.8]]></version>
+    <version><![CDATA[2.0.9]]></version>
     <description><![CDATA[Env&iacute;o r&aacute;pido con Treggo.]]></description>
     <author><![CDATA[Rockstar Solutions]]></author>
     <tab><![CDATA[shipping_logistics]]></tab>
