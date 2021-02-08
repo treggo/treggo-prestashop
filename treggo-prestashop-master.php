@@ -16,7 +16,7 @@ if (!defined('_PS_VERSION_')) {
 
 class TreggoShippingModule extends CarrierModule
 {
-    const PREFIX = 'treggoshippingmodule_';
+    const PREFIX = 'treggo-prestashop-master_';
 
     public $id_carrier;
  
@@ -34,7 +34,7 @@ class TreggoShippingModule extends CarrierModule
     
     public function __construct()
     {
-        $this->name = 'treggoshippingmodule';
+        $this->name = 'treggo-prestashop-master';
         $this->tab = 'shipping_logistics';
         $this->version = '2.0.8';
         $this->author = 'Rockstar Solutions';
@@ -488,7 +488,7 @@ class TreggoShippingModule extends CarrierModule
         $header = "
         <div class=\"treggo-container\">
             <a target=\"_blank\" class=\"banner\" href=\"https://treggo.co/\">
-                <img class=\"img-fluid\" src=\"{$baseUrl}/modules/treggoshippingmodule/views/img/logo-transp.png\">
+                <img class=\"img-fluid\" src=\"{$baseUrl}/modules/treggo-prestashop-master/views/img/logo-transp.png\">
             </a>";
 
         if (Configuration::get('treggo_first_configuration') !== 'true') {
@@ -500,7 +500,7 @@ class TreggoShippingModule extends CarrierModule
             <p>
                 <b>No podrás utilizar este método de envío hasta que haya un acuerdo comercial sobre las coberturas.</b>
             </p>
-            <img class=\"footer\" src=\"{$baseUrl}/modules/treggoshippingmodule/views/img/blue-bar.png\">
+            <img class=\"footer\" src=\"{$baseUrl}/modules/treggo-prestashop-master/views/img/blue-bar.png\">
         </div>
         ";
 
