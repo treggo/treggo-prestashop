@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
-    <name>treggo-prestashop-master</name>
+    <name>treggoshippingmodule</name>
     <displayName><![CDATA[Treggo]]></displayName>
     <version><![CDATA[2.0.8]]></version>
     <description><![CDATA[Env&iacute;o r&aacute;pido con Treggo.]]></description>
