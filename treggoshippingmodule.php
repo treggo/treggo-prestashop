@@ -91,11 +91,14 @@ class TreggoShippingModule extends CarrierModule
                 // Executing CURL request and parsing it from JSON to a PHP array
                 $result = curl_exec($curl);
                 $result = json_decode($result);
-
-        
-                // Closing CURL connection
-                curl_close($curl);
-
+                if(property_exists($result, 'message')){
+                    error_log('Recibiendo: '.$result->message, 0);
+                    curl_close($curl);
+                }else{
+                    throw new \Exception('Error de comunicación con el servidor: '.$url);
+                    curl_close($curl);
+                    return false;
+                }
             } catch (\Exception $e) {
                 throw new \Exception('Error de comunicación con el servidor: ' . $e->getMessage());
             }
