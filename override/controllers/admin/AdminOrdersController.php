@@ -23,7 +23,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
     }
 
     public function printTags($type) {
-        $module = Module::getInstanceByName('treggo-prestashop-master');
+        $module = Module::getInstanceByName('treggoshippingmodule');
         $orders = array();
         if (is_array($this->boxes) && !empty($this->boxes)) {
             foreach ($this->boxes as $id_order) {
@@ -39,7 +39,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
                 $shipping_service = null;
                 foreach ($shipping_methods as $shipping_method) {
                     foreach ($module->carriers as $name => $code) {
-                        if ($shipping_method['id_carrier'] === Configuration::get('treggo-prestashop-master_' . $code)) {
+                        if ($shipping_method['id_carrier'] === Configuration::get('treggoshippingmodule_' . $code)) {
                             $shipping = $shipping_method;
                             $shipping_code = $code;
                             $shipping_service = $name;
