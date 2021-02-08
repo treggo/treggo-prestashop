@@ -36,7 +36,7 @@ class TreggoShippingModuleGetOrderShippingCostController
         $price = false;
 
         $url = $this->get_endpoint() . '/rate';
-
+        //error_log('Consultando a Treggo', 0);
         if (!ctype_digit($this->postcode)) {
             $postcode = Tools::substr($this->postcode, 1, -3);
         } else {
