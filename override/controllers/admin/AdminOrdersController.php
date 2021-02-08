@@ -14,7 +14,7 @@ class AdminOrdersController extends AdminOrdersControllerCore
             $this->bulk_actions['printTagsZebra'] = array('text' => 'Tregoo - Imprimir etiqueta Zebra', 'icon' => 'icon-print');
         }
     }
-
+ 
     public function get_endpoint()
     {
         $country_id = Configuration::get('PS_COUNTRY_DEFAULT');
