@@ -36,7 +36,7 @@ class TreggoShippingModule extends CarrierModule
     {
         $this->name = 'treggoshippingmodule';
         $this->tab = 'shipping_logistics';
-        $this->version = '2.0.8';
+        $this->version = '2.0.9';
         $this->author = 'Rockstar Solutions';
         $this->bootstrap = true;
      
@@ -51,7 +51,13 @@ class TreggoShippingModule extends CarrierModule
     {
         $country_id = Configuration::get('PS_COUNTRY_DEFAULT');
         $country = new Country($country_id);
-        return 'https://api.' . strtolower($country->iso_code) . '.treggo.co/1/integrations/prestashop';
+        $tenant = "ar";
+        if(strtolower($country->iso_code) == 'mvd'){
+            $tenant = "uy";
+        }else{
+            $tenant = strtolower($country->iso_code);
+        }
+        return 'https://api.' . $tenant . '.treggo.co/1/integrations/prestashop';
     }
 
     /**
