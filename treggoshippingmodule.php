@@ -279,7 +279,8 @@ class TreggoShippingModule extends CarrierModule
     {
         $id_order = $params['id_order'];
         $order = new Order((int) $id_order);
-
+        $address = new Address((int)($order->id_address_delivery));
+        $customer = new Customer((int) $order->id_customer);
         $shipping_methods = $order->getShipping();
 
         if (!is_array($shipping_methods) || count($shipping_methods) === 0) {
@@ -306,14 +307,12 @@ class TreggoShippingModule extends CarrierModule
         $new_order_status = $params['newOrderStatus'];
         $state_name = $new_order_status->name;
 
-        $address = new Address((int)($order->id_address_delivery));
 
         $url = $this->get_endpoint() . '/notifications';
 
-        $address = new Address($params['cart']->id_address_delivery);
         $state = State::getNameById($address->id_state);
-        $id_shop_group = $params['cart']->id_shop_group;
-        $id_shop = $params['cart']->id_shop;
+        // $id_shop_group = $params['cart']->id_shop_group;
+        // $id_shop = $params['cart']->id_shop;
 
         if (!ctype_digit($address->postcode)) {
             $postcode = Tools::substr($address->postcode, 1, -3);
@@ -325,8 +324,8 @@ class TreggoShippingModule extends CarrierModule
             'email' => Configuration::get('PS_SHOP_EMAIL'),
             'dominio' => $this->context->shop->domain,
             'order' => array(
-                'id_shop_group' => $id_shop_group,
-                'id_shop' => $id_shop,
+                // 'id_shop_group' => $id_shop_group,
+                // 'id_shop' => $id_shop,
                 'id_order' => $id_order,
                 'reference' => $order->reference,
                 'order_status' => $state_name,
@@ -339,6 +338,7 @@ class TreggoShippingModule extends CarrierModule
                 'company' =>  $address->company,
                 'lastname' =>  $address->lastname,
                 'firstname' =>  $address->firstname,
+                'buyer_email' =>  $customer->email,
                 'address1' =>  $address->address1,
                 'address2' =>  $address->address2,
                 'postcode' =>  $postcode,
